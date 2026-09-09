@@ -1,0 +1,21 @@
+/node_modules
+/.next
+/out
+/build
+.DS_Store
+*.pem
+.env*
+!.env.example
+/coverage
+next-env.d.ts
+.vercel
+*.tsbuildinfo
+
+# database
+/prisma/dev.db
+/prisma/dev.db-journal
+/prisma/migrations/dev.db
+/storage
+
+# local build artifact
+/gem-verify-project.zip

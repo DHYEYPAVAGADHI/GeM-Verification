@@ -1,0 +1,374 @@
+{
+  "_meta": {
+    "generated_by": "scripts/generate_mock_db.py",
+    "faker_locale": "en_IN",
+    "faker_seed": 26100,
+    "generated_on": "2026-09-02",
+    "record_count": 5,
+    "planted_cases": {
+      "fraud": "Deccan Traders LLP (turnover 2.10 Cr on record vs 8.00 Cr claimed)",
+      "cartel": "Sunrise Systems + Nimbus Solutions (shared DIN 07439281 & address)"
+    },
+    "disclaimer": "Synthetic data for the SIH prototype. Not real taxpayers."
+  },
+  "bidders": [
+    {
+      "constitution": "Private Limited Company",
+      "incorporation_date": "2011-05-18",
+      "cin": "U33110MH2011PTC219845",
+      "pan_status": "ACTIVE",
+      "aadhaar_seeding_status": "LINKED",
+      "gst_status": "Active",
+      "gst_registration_date": "2017-07-01",
+      "gst_taxpayer_type": "Regular",
+      "gst_filing": {
+        "last_return": "GSTR-3B",
+        "last_period": "072026",
+        "regular": true,
+        "delayed_returns_12m": 0
+      },
+      "udyam": {
+        "number": "UDYAM-MH-18-0021547",
+        "enterprise_type": "Small",
+        "major_activity": "Manufacturing",
+        "valid": true,
+        "date_of_registration": "2020-08-12"
+      },
+      "dpiit_startup": null,
+      "epfo": {
+        "code": "MHBAN0021547000",
+        "status": "Active",
+        "member_count": 214,
+        "last_ecr_period": "072026"
+      },
+      "esic": {
+        "code": "31000214760000999",
+        "status": "Active"
+      },
+      "income_tax": {
+        "latest_ay": "2026-27",
+        "itr_filed": true,
+        "turnover_declared_cr": 42.6,
+        "audit_u44ab": true
+      },
+      "bank": {
+        "account": "50810884662",
+        "ifsc": "SBIN0001234",
+        "penny_drop_name_match": true
+      },
+      "make_in_india": {
+        "declared_local_content_pct": 62,
+        "supplier_class": "Class-II",
+        "bom_ca_attested": true
+      },
+      "msme_emd_exemption": true,
+      "debarment_records": [],
+      "forensic_hint": null,
+      "tender_id": "GEM/2026/B/4471209",
+      "legal_name": "Apollo Instruments Pvt Ltd",
+      "pan": "APOCA1234A",
+      "gstin": "27APOCA1234A1ZB",
+      "registered_address": "Plot D-14, MIDC Industrial Area, Andheri East, Mumbai 400093",
+      "directors": [
+        {
+          "din": "01122334",
+          "name": "R. S. Kulkarni",
+          "designation": "Director"
+        },
+        {
+          "din": "01122335",
+          "name": "M. R. Kulkarni",
+          "designation": "Director"
+        }
+      ]
+    },
+    {
+      "constitution": "Public Limited Company",
+      "incorporation_date": "2004-02-11",
+      "cin": "L64200KA2004PLC034512",
+      "pan_status": "ACTIVE",
+      "aadhaar_seeding_status": "LINKED",
+      "gst_status": "Active",
+      "gst_registration_date": "2017-07-01",
+      "gst_taxpayer_type": "Regular",
+      "gst_filing": {
+        "last_return": "GSTR-3B",
+        "last_period": "072026",
+        "regular": true,
+        "delayed_returns_12m": 0
+      },
+      "udyam": null,
+      "dpiit_startup": null,
+      "epfo": {
+        "code": "KNBNG0034512000",
+        "status": "Active",
+        "member_count": 1180,
+        "last_ecr_period": "072026"
+      },
+      "esic": null,
+      "income_tax": {
+        "latest_ay": "2026-27",
+        "itr_filed": true,
+        "turnover_declared_cr": 121.4,
+        "audit_u44ab": true
+      },
+      "bank": {
+        "account": "50713484253",
+        "ifsc": "SBIN0001234",
+        "penny_drop_name_match": true
+      },
+      "make_in_india": {
+        "declared_local_content_pct": 55,
+        "supplier_class": "Class-II",
+        "bom_ca_attested": true
+      },
+      "msme_emd_exemption": false,
+      "debarment_records": [],
+      "forensic_hint": null,
+      "tender_id": "GEM/2026/B/4471209",
+      "legal_name": "Bharat Networks Ltd",
+      "pan": "BHACB5678B",
+      "gstin": "29BHACB5678B1ZA",
+      "registered_address": "Prestige Tech Park, Sarjapur Road, Bengaluru 560103",
+      "directors": [
+        {
+          "din": "02233445",
+          "name": "A. Venkataraman",
+          "designation": "Director"
+        },
+        {
+          "din": "02233446",
+          "name": "S. Iyer",
+          "designation": "Director"
+        },
+        {
+          "din": "02233447",
+          "name": "P. Menon",
+          "designation": "Director"
+        }
+      ]
+    },
+    {
+      "constitution": "Limited Liability Partnership",
+      "incorporation_date": "2019-11-03",
+      "cin": "AAF-2291",
+      "pan_status": "ACTIVE",
+      "aadhaar_seeding_status": "LINKED",
+      "gst_status": "Active",
+      "gst_registration_date": "2017-07-01",
+      "gst_taxpayer_type": "Regular",
+      "gst_filing": {
+        "last_return": "GSTR-3B",
+        "last_period": "042026",
+        "regular": false,
+        "delayed_returns_12m": 5
+      },
+      "udyam": {
+        "number": "UDYAM-GJ-03-0099211",
+        "enterprise_type": "Micro",
+        "major_activity": "Trading",
+        "valid": true,
+        "date_of_registration": "2021-01-30"
+      },
+      "dpiit_startup": null,
+      "epfo": {
+        "code": "GJAHD0099211000",
+        "status": "Inactive",
+        "member_count": 0,
+        "last_ecr_period": "022026"
+      },
+      "esic": null,
+      "income_tax": {
+        "latest_ay": "2026-27",
+        "itr_filed": true,
+        "turnover_declared_cr": 2.1,
+        "audit_u44ab": false
+      },
+      "bank": {
+        "account": "50838486262",
+        "ifsc": "SBIN0001234",
+        "penny_drop_name_match": true
+      },
+      "make_in_india": {
+        "declared_local_content_pct": 38,
+        "supplier_class": "Class-II",
+        "bom_ca_attested": false
+      },
+      "msme_emd_exemption": true,
+      "debarment_records": [
+        {
+          "entity_name": "Deccan Infra Projects (associate)",
+          "authority": "State PWD, Gujarat",
+          "reason": "Caution list — abandoned contract, 2024",
+          "from_date": "2024-05-01",
+          "till_date": "2027-04-30"
+        }
+      ],
+      "forensic_hint": {
+        "type": "FORGED_TURNOVER",
+        "claimed_turnover_cr": 8.0,
+        "on_record_turnover_cr": 2.1,
+        "note": "Submitted CA turnover certificate to be tested with Error Level Analysis in Phase 2."
+      },
+      "tender_id": "GEM/2026/B/4471209",
+      "legal_name": "Deccan Traders LLP",
+      "pan": "DECFD9012D",
+      "gstin": "24DECFD9012D1ZQ",
+      "registered_address": "27 Ashram Road, Navrangpura, Ahmedabad 380009",
+      "directors": [
+        {
+          "din": "03344556",
+          "name": "H. K. Patel",
+          "designation": "Director"
+        },
+        {
+          "din": "03344557",
+          "name": "N. H. Patel",
+          "designation": "Director"
+        }
+      ]
+    },
+    {
+      "constitution": "Private Limited Company",
+      "incorporation_date": "2018-04-15",
+      "cin": "U72900DL2018PTC331245",
+      "pan_status": "ACTIVE",
+      "aadhaar_seeding_status": "LINKED",
+      "gst_status": "Active",
+      "gst_registration_date": "2017-07-01",
+      "gst_taxpayer_type": "Regular",
+      "gst_filing": {
+        "last_return": "GSTR-3B",
+        "last_period": "072026",
+        "regular": true,
+        "delayed_returns_12m": 0
+      },
+      "udyam": {
+        "number": "UDYAM-DL-06-0033145",
+        "enterprise_type": "Small",
+        "major_activity": "Services",
+        "valid": true,
+        "date_of_registration": "2019-06-20"
+      },
+      "dpiit_startup": null,
+      "epfo": {
+        "code": "DLCPM0033145000",
+        "status": "Active",
+        "member_count": 61,
+        "last_ecr_period": "072026"
+      },
+      "esic": null,
+      "income_tax": {
+        "latest_ay": "2026-27",
+        "itr_filed": true,
+        "turnover_declared_cr": 15.2,
+        "audit_u44ab": true
+      },
+      "bank": {
+        "account": "50259413976",
+        "ifsc": "SBIN0001234",
+        "penny_drop_name_match": true
+      },
+      "make_in_india": {
+        "declared_local_content_pct": 51,
+        "supplier_class": "Class-II",
+        "bom_ca_attested": false
+      },
+      "msme_emd_exemption": true,
+      "debarment_records": [],
+      "forensic_hint": {
+        "type": "CARTEL",
+        "shares_din_with": "Nimbus Solutions Pvt Ltd",
+        "shared_din": "07439281"
+      },
+      "tender_id": "GEM/2026/B/4471209",
+      "legal_name": "Sunrise Systems Pvt Ltd",
+      "pan": "SUNCS3456S",
+      "gstin": "07SUNCS3456S1ZR",
+      "registered_address": "Unit 4, 2nd Floor, Okhla Industrial Estate Phase III, New Delhi 110020",
+      "directors": [
+        {
+          "din": "07439281",
+          "name": "V. Ahuja",
+          "designation": "Director"
+        },
+        {
+          "din": "07439282",
+          "name": "K. Ahuja",
+          "designation": "Director"
+        }
+      ]
+    },
+    {
+      "constitution": "Private Limited Company",
+      "incorporation_date": "2017-09-27",
+      "cin": "U72900DL2017PTC318890",
+      "pan_status": "ACTIVE",
+      "aadhaar_seeding_status": "LINKED",
+      "gst_status": "Active",
+      "gst_registration_date": "2017-07-01",
+      "gst_taxpayer_type": "Regular",
+      "gst_filing": {
+        "last_return": "GSTR-3B",
+        "last_period": "072026",
+        "regular": true,
+        "delayed_returns_12m": 0
+      },
+      "udyam": {
+        "number": "UDYAM-DL-06-0031889",
+        "enterprise_type": "Small",
+        "major_activity": "Services",
+        "valid": true,
+        "date_of_registration": "2018-02-14"
+      },
+      "dpiit_startup": null,
+      "epfo": {
+        "code": "DLCPM0031889000",
+        "status": "Active",
+        "member_count": 74,
+        "last_ecr_period": "072026"
+      },
+      "esic": null,
+      "income_tax": {
+        "latest_ay": "2026-27",
+        "itr_filed": true,
+        "turnover_declared_cr": 18.9,
+        "audit_u44ab": true
+      },
+      "bank": {
+        "account": "50323107783",
+        "ifsc": "SBIN0001234",
+        "penny_drop_name_match": true
+      },
+      "make_in_india": {
+        "declared_local_content_pct": 49,
+        "supplier_class": "Class-II",
+        "bom_ca_attested": false
+      },
+      "msme_emd_exemption": true,
+      "debarment_records": [],
+      "forensic_hint": {
+        "type": "CARTEL",
+        "shares_din_with": "Sunrise Systems Pvt Ltd",
+        "shared_din": "07439281"
+      },
+      "tender_id": "GEM/2026/B/4471209",
+      "legal_name": "Nimbus Solutions Pvt Ltd",
+      "pan": "NIMCN7890N",
+      "gstin": "07NIMCN7890N1ZM",
+      "registered_address": "Unit 4, 2nd Floor, Okhla Industrial Estate Phase III, New Delhi 110020",
+      "directors": [
+        {
+          "din": "07439281",
+          "name": "V. Ahuja",
+          "designation": "Director"
+        },
+        {
+          "din": "09988776",
+          "name": "R. Sethi",
+          "designation": "Director"
+        }
+      ]
+    }
+  ]
+}

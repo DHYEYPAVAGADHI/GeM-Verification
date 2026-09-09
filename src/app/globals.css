@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --canvas: #f6f7fb;
+}
+
+/* GIGW text-size controls (A- / A / A+ in the utility bar) */
+html.fs-s {
+  font-size: 14.5px;
+}
+html.fs-l {
+  font-size: 18px;
+}
+html.hc {
+  filter: contrast(1.18) saturate(1.05);
+}
+
+@layer base {
+  * {
+    border-color: theme("colors.line");
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  /* one-page anchor targets clear the sticky nav */
+  section[id] {
+    scroll-margin-top: 84px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  body {
+    background-color: var(--canvas);
+    color: theme("colors.ink.DEFAULT");
+    font-feature-settings: "ss01", "cv05";
+  }
+  ::selection {
+    background: theme("colors.brand.200");
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+    letter-spacing: -0.011em;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-white shadow-card transition-[box-shadow,transform] duration-200;
+  }
+  a:hover > .card,
+  a.card:hover,
+  .card-hover:hover {
+    @apply -translate-y-0.5 shadow-pop;
+  }
+  .card-pad {
+    @apply p-5 sm:p-6;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700 active:translate-y-px;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-white text-ink-soft hover:bg-canvas;
+  }
+  .btn-danger {
+    @apply btn bg-risk-high text-white hover:brightness-95;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+  }
+  .label {
+    @apply text-sm font-medium text-ink-soft;
+  }
+  .section {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted;
+  }
+  .data {
+    @apply font-mono tabular-nums;
+  }
+}
+
+/* GIGW real-time alert ticker */
+@keyframes gigw-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.gigw-ticker-track {
+  animation: gigw-ticker 34s linear infinite;
+}
+.gigw-ticker:hover .gigw-ticker-track,
+.gigw-ticker:focus-within .gigw-ticker-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gigw-ticker-track {
+    animation: none;
+    transform: none;
+  }
+}
+
+.scroll-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #cdd3e0;
+  border-radius: 9999px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

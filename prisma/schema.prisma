@@ -1,0 +1,406 @@
+// GeM Verify — data model
+// SQLite for local / demo. Swap `provider = "postgresql"` + DATABASE_URL for production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/* ----------------------------- Identity ---------------------------------- */
+
+enum Role {
+  OFFICER
+  VENDOR
+  ADMIN
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  role         Role
+  vendorId     String?
+  vendor       VendorProfile? @relation(fields: [vendorId], references: [id])
+  createdAt    DateTime      @default(now())
+}
+
+/* ------------------------- Vendor company file -------------------------- */
+
+model VendorProfile {
+  id                String   @id @default(cuid())
+  orgName           String
+  constitution      String // "Private Limited", "LLP", "Partnership", "Proprietorship"
+  incorporationDate DateTime?
+  cin               String?
+  pan               String
+  gstin             String
+  udyamNo           String?
+  msmeClass         String? // "Micro" | "Small" | "Medium"
+  startupDpiit      String? // DPIIT recognition number
+  epfoCode          String?
+  esicCode          String?
+  nsicNo            String?
+  iec               String?
+  registeredAddress String
+  worksAddress      String?
+  bankAccount       String?
+  bankIfsc          String?
+  turnoverY1        Float?
+  turnoverY2        Float?
+  turnoverY3        Float?
+  netWorth          Float?
+  sector            String?
+  state             String?
+  employees         Int?
+  users             User[]
+  documents         ProfileDocument[]
+  bids              Bid[]
+  changeRequests    ProfileChangeRequest[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+enum DocStatus {
+  UPLOADED
+  EXTRACTED
+  VERIFIED
+  DISCREPANCY
+  FAILED
+}
+
+// Gate on whether a self-service vault upload is officially part of the
+// vendor's file yet. Defaults to APPROVED so every pre-existing / officer-
+// created document keeps working as before; a vendor's own upload through
+// the Document Vault explicitly requests PENDING.
+enum DocApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProfileDocument {
+  id             String    @id @default(cuid())
+  vendorId       String
+  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  docType        String
+  fileName       String
+  mimeType       String
+  size           Int
+  sha256         String
+  bytes          Bytes
+  version        Int       @default(1)
+  expiryDate     DateTime?
+  extractedJson  String?  // JSON string
+  status         DocStatus @default(UPLOADED)
+  approvalStatus DocApprovalStatus @default(APPROVED)
+  reviewedById   String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  uploadedAt     DateTime  @default(now())
+  bidDocuments   BidDocument[]
+}
+
+// A vendor's proposed edit to their own Company Profile. The profile itself
+// is only updated once an Officer/Admin approves — "changes" is a JSON diff
+// of { field: { from, to } }.
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProfileChangeRequest {
+  id            String   @id @default(cuid())
+  vendorId      String
+  vendor        VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  requestedById String
+  changes       String   // JSON: { field: { from, to } }
+  note          String?
+  status        ChangeRequestStatus @default(PENDING)
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewNote    String?
+  createdAt     DateTime @default(now())
+}
+
+/* ----------------------------- Tenders --------------------------------- */
+
+enum TenderStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  UNDER_EVALUATION
+  AWARDED
+}
+
+model Tender {
+  id                String   @id @default(cuid())
+  refNo             String   @unique
+  title             String
+  buyer             String
+  category          String
+  description       String
+  estValueCr        Float
+  emdAmount         Float
+  emdExemptionMsme  Boolean  @default(true)
+  localContentClass String   @default("Class-II") // "Class-I" | "Class-II" | "Non-Local allowed"
+  oemAuthRequired   Boolean  @default(false)
+  publishDate       DateTime @default(now())
+  closeDate         DateTime
+  status            TenderStatus @default(PUBLISHED)
+  createdById       String?
+  criteria          EligibilityCriterion[]
+  requiredDocs      RequiredDocument[]
+  bids              Bid[]
+  createdAt         DateTime @default(now())
+}
+
+// type drives how rules.ts evaluates it
+model EligibilityCriterion {
+  id        String  @id @default(cuid())
+  tenderId  String
+  tender    Tender  @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  label     String
+  type      String  // TURNOVER_MIN | EXPERIENCE_VALUE | LOCAL_CONTENT_CLASS | GST_ACTIVE | PF_COMPLIANCE | NO_DEBARMENT | OEM_AUTH | MSME_REGISTERED | ISO_VALID
+  config    String  // JSON: e.g. {"minCr": 25} or {"class": "Class-II"}
+  mandatory Boolean @default(true)
+  order     Int     @default(0)
+  responses BidCriterionResponse[]
+}
+
+model RequiredDocument {
+  id        String  @id @default(cuid())
+  tenderId  String
+  tender    Tender  @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  docType   String
+  label     String
+  mandatory Boolean @default(true)
+  order     Int     @default(0)
+  bidDocuments BidDocument[]
+}
+
+/* ------------------------------- Bids ---------------------------------- */
+
+enum BidStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_VERIFICATION
+  CLARIFICATION_REQUESTED
+  TECHNICAL_EVALUATION
+  QUALIFIED
+  DISQUALIFIED
+  WITHDRAWN
+}
+
+model Bid {
+  id             String    @id @default(cuid())
+  tenderId       String
+  tender         Tender    @relation(fields: [tenderId], references: [id])
+  vendorId       String
+  vendor         VendorProfile @relation(fields: [vendorId], references: [id])
+  status         BidStatus @default(DRAFT)
+  wizardStep     Int       @default(1)
+  financialTotalCr Float?
+  emdMode        String?   // "PAID" | "EXEMPT_MSME" | "BANK_GUARANTEE"
+  localContentPct Int?
+  makeModel      String?
+  methodology    String?
+  bidHash        String?
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  documents      BidDocument[]
+  criterionResponses BidCriterionResponse[]
+  declarations   Declaration[]
+  runs           VerificationRun[]
+  clarifications Clarification[]
+  decision       Decision?
+
+  @@unique([tenderId, vendorId])
+}
+
+model BidDocument {
+  id             String   @id @default(cuid())
+  bidId          String
+  bid            Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  requiredDocId  String?
+  requiredDoc    RequiredDocument? @relation(fields: [requiredDocId], references: [id])
+  profileDocId   String?
+  profileDoc     ProfileDocument?  @relation(fields: [profileDocId], references: [id])
+  declaredType   String
+  detectedType   String?
+  fileName       String
+  mimeType       String
+  size           Int
+  sha256         String
+  bytes          Bytes
+  extractedJson  String?  // JSON of extracted fields
+  verificationJson String? // JSON of gateway verification result
+  forensicJson   String?  // JSON of forensic result
+  status         DocStatus @default(UPLOADED)
+  officerNote    String?
+  officerAction  String?  // "ACCEPTED" | "REJECTED" | "CLARIFY"
+  uploadedAt     DateTime @default(now())
+}
+
+model BidCriterionResponse {
+  id          String  @id @default(cuid())
+  bidId       String
+  bid         Bid     @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  criterionId String
+  criterion   EligibilityCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  complied    Boolean @default(false)
+  mappedDocId String?
+  evalResult  String? // JSON: {status, detail, value}
+
+  @@unique([bidId, criterionId])
+}
+
+model Declaration {
+  id         String   @id @default(cuid())
+  bidId      String
+  bid        Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  key        String
+  label      String
+  acceptedAt DateTime @default(now())
+  ip         String?
+}
+
+/* ------------------------ Verification engine ------------------------- */
+
+model VerificationRun {
+  id             String   @id @default(cuid())
+  bidId          String
+  bid            Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  score          Int
+  riskLevel      String   // "low" | "review" | "high"
+  recommendation String   // "Recommended" | "Review Required" | "Not Recommended"
+  confidence     Int
+  rationale      String
+  pendingJson    String   // JSON array of pending items
+  startedAt      DateTime @default(now())
+  finishedAt     DateTime @default(now())
+  checks         Check[]
+}
+
+model Check {
+  id           String  @id @default(cuid())
+  runId        String
+  run          VerificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  key          String
+  label        String
+  source       String
+  status       String  // "verified" | "warning" | "failed" | "pending"
+  detail       String
+  contribution Float   @default(0)
+  evidenceJson String?
+  order        Int     @default(0)
+}
+
+/* --------------------------- Officer actions ------------------------- */
+
+model Clarification {
+  id              String   @id @default(cuid())
+  bidId           String
+  bid             Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  officerId       String
+  message         String
+  requestedDocType String?
+  status          String   @default("OPEN") // "OPEN" | "RESPONDED" | "CLOSED"
+  response        String?
+  responseDocId   String?
+  createdAt       DateTime @default(now())
+  respondedAt     DateTime?
+}
+
+model Decision {
+  id          String   @id @default(cuid())
+  bidId       String   @unique
+  bid         Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  officerId   String
+  verdict     String   // "QUALIFIED" | "DISQUALIFIED"
+  reason      String
+  decidedAt   DateTime @default(now())
+}
+
+/* ----------------------- Mock government sources -------------------- */
+
+model GovPan {
+  pan        String  @id
+  name       String
+  status     String  // "ACTIVE" | "INACTIVE"
+  aadhaarSeed Boolean @default(true)
+  itrFiledAY String? // latest AY with filed ITR
+}
+
+model GovGstin {
+  gstin           String  @id
+  legalName       String
+  pan             String
+  status          String  // "Active" | "Suspended" | "Cancelled"
+  registrationDate DateTime
+  lastReturnPeriod String // "Jul 2026"
+  filingRegular   Boolean @default(true)
+  stateCode       String
+}
+
+model GovUdyam {
+  udyamNo    String @id
+  name       String
+  pan        String
+  enterprise String // "Micro" | "Small" | "Medium"
+  status     String @default("Valid")
+}
+
+model GovMca {
+  cin        String @id
+  name       String
+  status     String // "Active" | "Strike Off" | "Under Liquidation"
+  directors  String // JSON array of {din, name}
+  charges    Float  @default(0)
+}
+
+model GovEpfo {
+  code           String  @id
+  name           String
+  status         String  @default("Active")
+  lastEcrPeriod  String
+  memberCount    Int
+}
+
+model GovDpiit {
+  recognitionNo String  @id
+  name          String
+  validTill     DateTime
+}
+
+model GovDebarment {
+  id        String  @id @default(cuid())
+  entityName String
+  pan       String?
+  authority String
+  reason    String
+  fromDate  DateTime
+  tillDate  DateTime?
+}
+
+/* ----------------------------- Audit -------------------------------- */
+
+model AuditEntry {
+  seq        Int      @id @default(autoincrement())
+  ts         DateTime @default(now())
+  actor      String
+  action     String
+  entityType String
+  entityId   String
+  summary    String
+  payloadHash String
+  prevHash   String
+  hash       String
+}

@@ -1,0 +1,39 @@
+# ── GeM Verify — Compliance Engine ───────────────────────────────────────────
+# Phase 1 needs only the web stack + Faker; the rest are pinned now so the
+# environment is stable across every later phase.
+
+# --- Web / API ---------------------------------------------------------------
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-multipart==0.0.20          # file uploads (Phase 2 document intake)
+httpx==0.28.1                     # live-adapter calls + test client
+
+# --- Mock data -------------------------------------------------------------
+faker==33.1.0
+
+# --- AI Vision extraction layer (Phase 2) --------------------------------
+pymupdf==1.25.1                   # PDF parsing / rasterisation
+anthropic==0.42.0                # Claude Vision — unstructured doc -> JSON
+pillow==11.1.0
+
+# --- Forensics & analytics (Phase 2 / 3) -------------------------------
+opencv-python-headless==4.10.0.84 # Error Level Analysis on balance sheets
+numpy==2.2.1
+pandas==2.2.3                     # registry ingest for the cartel graph
+pyzbar==0.1.9                     # QR payload decode  (needs system `zbar`)
+networkx==3.4.2                   # bidder cartel / collusion graph
+
+# --- Async task queue (Phase 3) ---------------------------------------
+celery==5.4.0
+redis==5.2.1
+
+# --- Persistence (Phase 3) ------------------------------------------
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# --- Dev / test ----------------------------------------------------
+pytest==8.3.4
+pytest-asyncio==0.25.0
