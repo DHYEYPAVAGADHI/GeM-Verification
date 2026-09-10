@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, ShieldCheck, XCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { BidWizard } from "@/components/vendor/bid-wizard";
@@ -23,6 +23,7 @@ export default async function VendorBidPage({ params }: { params: { id: string }
       documents: true,
       criterionResponses: true,
       declarations: true,
+      decision: true,
       clarifications: { orderBy: { createdAt: "desc" } },
       runs: { orderBy: { startedAt: "desc" }, take: 1, include: { checks: { orderBy: { order: "asc" } } } },
     },
@@ -125,6 +126,37 @@ export default async function VendorBidPage({ params }: { params: { id: string }
           {bidStatusMeta[bid.status]?.label}
         </Pill>
       </div>
+
+      {bid.decision && (
+        <div
+          className={
+            bid.decision.verdict === "DISQUALIFIED"
+              ? "rounded-xl border border-risk-high/30 bg-risk-high-bg/60 p-5"
+              : "rounded-xl border border-risk-low/30 bg-risk-low-bg/60 p-5"
+          }
+        >
+          <div className="flex items-start gap-3">
+            {bid.decision.verdict === "DISQUALIFIED" ? (
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-risk-high" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-risk-low" />
+            )}
+            <div>
+              <p className="text-sm font-bold text-ink">
+                {bid.decision.verdict === "DISQUALIFIED"
+                  ? "This bid was not qualified"
+                  : "This bid has been qualified"}
+              </p>
+              <p className="mt-1 text-sm text-ink-soft">{bid.decision.reason}</p>
+              <p className="mt-2 text-xs text-ink-muted">
+                Decision recorded by the Procurement Officer on {formatDateTime(bid.decision.decidedAt)}.
+                {bid.decision.verdict === "DISQUALIFIED" &&
+                  " If you believe this is in error, raise it with the buyer through the tender's grievance channel."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
         <div className="space-y-6">

@@ -12,9 +12,7 @@ import {
   PlayCircle,
   ScanEye,
   ScrollText,
-  Settings,
   SlidersHorizontal,
-  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -37,7 +35,6 @@ export const navSections: NavSection[] = [
     title: "Analytics",
     items: [
       { label: "Risk Analytics", href: "/dashboard/risk-analytics", icon: BarChart3 },
-      { label: "Trends & Insights", href: "/dashboard/trends", icon: TrendingUp },
       { label: "Source Reliability", href: "/dashboard/source-reliability", icon: Activity },
     ],
   },
@@ -56,7 +53,6 @@ export const navSections: NavSection[] = [
       { label: "Government Sources", href: "/dashboard/government-sources", icon: Building2 },
       { label: "Rules Engine", href: "/dashboard/rules-engine", icon: SlidersHorizontal },
       { label: "User Management", href: "/dashboard/users", icon: Users },
-      { label: "System Settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
 ];

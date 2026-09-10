@@ -5,6 +5,7 @@ import { ArrowUpDown, LogIn, Search, SlidersHorizontal } from "lucide-react";
 import { type PublicTender, type PublicTenderList } from "@/lib/public-tenders";
 import { TenderParticipateModal } from "@/components/vendor/tender-participate-modal";
 import { Pill } from "@/components/ui/pill";
+import { useI18n } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
 type SortKey = "end_date_asc" | "end_date_desc" | "value_desc";
@@ -15,10 +16,11 @@ const fmtDate = (iso: string) =>
 const fmtQty = (n: number) => n.toLocaleString("en-IN");
 
 function DaysLeftPill({ days }: { days: number }) {
-  if (days <= 0) return <Pill tone="bg-slate-100 text-ink-muted">Closed</Pill>;
+  const { dict } = useI18n();
+  if (days <= 0) return <Pill tone="bg-slate-100 text-ink-muted">{dict.tenders.closed}</Pill>;
   const tone =
     days <= 3 ? "bg-risk-high-bg text-risk-high" : days <= 7 ? "bg-risk-review-bg text-risk-review" : "bg-risk-low-bg text-risk-low";
-  return <Pill tone={tone}>{days} day{days === 1 ? "" : "s"} left</Pill>;
+  return <Pill tone={tone}>{days} {days === 1 ? dict.tenders.dayLeft : dict.tenders.daysLeft}</Pill>;
 }
 
 export function TendersBrowser({
@@ -32,6 +34,8 @@ export function TendersBrowser({
   const [sort, setSort] = useState<SortKey>("end_date_asc");
   const [query, setQuery] = useState("");
   const [modalTender, setModalTender] = useState<PublicTender | null>(null);
+  const { dict } = useI18n();
+  const tt = dict.tenders;
 
   const rows = useMemo(() => {
     let list = [...data.results];
@@ -59,11 +63,7 @@ export function TendersBrowser({
     <div className="space-y-4">
       <div className="flex items-start gap-2.5 rounded-lg border border-gov-navy/10 bg-blue-50 px-4 py-3 text-sm text-gov-navy">
         <LogIn className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>
-          Selecting <span className="font-semibold">Participate</span> verifies your entity by PAN or
-          GSTIN against the GeM registry. Verified entities go straight to the application; new
-          entities are routed to a quick onboarding wizard.
-        </p>
+        <p>{tt.infoBanner}</p>
       </div>
 
       {/* Filter / sort bar */}
@@ -73,22 +73,22 @@ export function TendersBrowser({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by item or GeM bid number…"
+            placeholder={tt.searchPlaceholder}
             className="field pl-9"
-            aria-label="Search ongoing bids"
+            aria-label={tt.searchPlaceholder}
           />
         </div>
 
         <label className="flex items-center gap-2 text-sm text-ink-soft">
           <SlidersHorizontal className="h-4 w-4 text-ink-muted" />
-          <span className="sr-only sm:not-sr-only">Ministry</span>
+          <span className="sr-only sm:not-sr-only">{tt.ministry}</span>
           <select
             value={ministry}
             onChange={(e) => setMinistry(e.target.value)}
             className="field sm:w-64"
-            aria-label="Filter by ministry"
+            aria-label={tt.ministry}
           >
-            <option value="all">All ministries</option>
+            <option value="all">{tt.allMinistries}</option>
             {data.ministries.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -99,22 +99,22 @@ export function TendersBrowser({
 
         <label className="flex items-center gap-2 text-sm text-ink-soft">
           <ArrowUpDown className="h-4 w-4 text-ink-muted" />
-          <span className="sr-only sm:not-sr-only">Sort</span>
+          <span className="sr-only sm:not-sr-only">{tt.sort}</span>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             className="field sm:w-52"
-            aria-label="Sort bids"
+            aria-label={tt.sort}
           >
-            <option value="end_date_asc">Closing soonest</option>
-            <option value="end_date_desc">Closing latest</option>
-            <option value="value_desc">Highest value</option>
+            <option value="end_date_asc">{tt.sortEndAsc}</option>
+            <option value="end_date_desc">{tt.sortEndDesc}</option>
+            <option value="value_desc">{tt.sortValueDesc}</option>
           </select>
         </label>
       </div>
 
       <p className="text-xs text-ink-muted">
-        Showing {rows.length} of {data.results.length} bids
+        {tt.showing} {rows.length} {tt.of} {data.results.length} {tt.bids}
         {ministry !== "all" && ` · ${ministry}`}
       </p>
 
@@ -123,12 +123,12 @@ export function TendersBrowser({
         <table className="w-full min-w-[820px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-ink-muted">
-              <th className="px-4 py-3 font-semibold">GeM Bid No.</th>
-              <th className="px-4 py-3 font-semibold">Item / Category</th>
-              <th className="px-4 py-3 font-semibold">Ministry / Department</th>
-              <th className="px-4 py-3 font-semibold">Quantity</th>
-              <th className="px-4 py-3 font-semibold">Bid End Date</th>
-              <th className="px-4 py-3 text-right font-semibold">Action</th>
+              <th className="px-4 py-3 font-semibold">{tt.cols.bidNo}</th>
+              <th className="px-4 py-3 font-semibold">{tt.cols.item}</th>
+              <th className="px-4 py-3 font-semibold">{tt.cols.ministry}</th>
+              <th className="px-4 py-3 font-semibold">{tt.cols.quantity}</th>
+              <th className="px-4 py-3 font-semibold">{tt.cols.endDate}</th>
+              <th className="px-4 py-3 text-right font-semibold">{tt.cols.action}</th>
             </tr>
           </thead>
           <tbody>
@@ -137,7 +137,7 @@ export function TendersBrowser({
                 <td className="px-4 py-3 align-top">
                   <span className="data text-[13px] font-semibold text-gov-navy">{t.bid_no}</span>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {t.mse_exemption && <Pill tone="bg-gov-wash text-gov-navy">MSE / EMD exempt</Pill>}
+                    {t.mse_exemption && <Pill tone="bg-gov-wash text-gov-navy">{tt.mseExempt}</Pill>}
                   </div>
                 </td>
                 <td className="px-4 py-3 align-top">
@@ -165,7 +165,7 @@ export function TendersBrowser({
                       t.days_left <= 0 && "pointer-events-none opacity-50",
                     )}
                   >
-                    Participate
+                    {tt.participate}
                   </button>
                 </td>
               </tr>
@@ -173,7 +173,7 @@ export function TendersBrowser({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-sm text-ink-muted">
-                  No ongoing bids match your filters.
+                  {tt.noResults}
                 </td>
               </tr>
             )}

@@ -9,7 +9,7 @@
  */
 import "server-only";
 
-import { readFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import path from "node:path";
 
 export type RegistryRecord = {
@@ -139,4 +139,66 @@ export async function lookupRegistry(opts: {
 
 export async function registrySize(): Promise<number> {
   return (await getIndex()).count;
+}
+
+function csvCell(v: string | number): string {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+export type NewRegistryRow = {
+  companyName: string;
+  loginEmail: string;
+  aadhaarMasked: string;
+  pan: string;
+  gstin: string;
+  cin: string;
+  isMsme: boolean;
+  udyamNo: string;
+  turnoverCr: number;
+  caUdin: string;
+  miiPct: number;
+  directorName: string;
+  directorDin: string;
+  registeredAddress: string;
+};
+
+/**
+ * Append one freshly registered entity to the national bidder registry CSV,
+ * minting the next BID_xxxx id. The file is the same one the FastAPI sandbox
+ * appends to and that the AI audit / eligibility checks read from, so a new
+ * vendor is immediately matchable everywhere.
+ */
+export async function appendRegistryRecord(row: NewRegistryRow): Promise<{ bidderId: string }> {
+  const index = await getIndex();
+  const bidderId = `BID_${1000 + index.count}`;
+  const existing = await readFile(CSV_PATH, "utf-8").catch(() => "");
+  const eol = existing.includes("\r\n") ? "\r\n" : "\n";
+  const prefix = existing.length > 0 && !existing.endsWith("\n") ? eol : "";
+  const line =
+    prefix +
+    [
+      bidderId,
+      row.companyName,
+      row.loginEmail,
+      row.aadhaarMasked || "NA",
+      row.pan.toUpperCase(),
+      row.gstin.toUpperCase(),
+      row.cin || "NA",
+      row.isMsme ? "True" : "False",
+      row.udyamNo || "NA",
+      row.turnoverCr.toFixed(2),
+      row.caUdin || "NA",
+      Math.round(row.miiPct),
+      row.directorName || "NA",
+      row.directorDin || "NA",
+      row.registeredAddress || "NA",
+      "False", // tampered_flag — a self-registered entity is not pre-flagged
+    ]
+      .map(csvCell)
+      .join(",") + eol;
+
+  await appendFile(CSV_PATH, line, "utf-8");
+  cache = null; // force re-index on next lookup
+  return { bidderId };
 }

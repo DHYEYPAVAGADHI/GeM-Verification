@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getTenderForVendor } from "@/lib/queries";
 import { previewEligibility } from "@/lib/engine/preview";
-import { startBid } from "@/lib/actions";
+import { StartBidForm } from "@/components/vendor/start-bid-form";
 import { CheckStatusIcon, checkStatusLabel } from "@/components/ui/check-status";
 import { Pill } from "@/components/ui/pill";
 import { CRITERION_TYPE_LABEL, DOC_TYPE_LABEL } from "@/lib/domain";
@@ -23,8 +23,6 @@ export default async function VendorTenderPage({ params }: { params: { id: strin
     db.bid.findUnique({ where: { tenderId_vendorId: { tenderId: params.id, vendorId } } }),
   ]);
   if (!tender) notFound();
-
-  const startBidHere = startBid.bind(null, tender.id);
 
   return (
     <div className="space-y-6">
@@ -44,11 +42,7 @@ export default async function VendorTenderPage({ params }: { params: { id: strin
               {existing.status === "DRAFT" ? "Continue bid" : "View bid"} <ArrowRight className="h-4 w-4" />
             </Link>
           ) : (
-            <form action={startBidHere}>
-              <button className="btn-primary" type="submit">
-                Start bid <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+            <StartBidForm tenderId={tender.id} />
           )}
         </div>
         <p className="mt-3 max-w-3xl text-sm text-ink-soft">{tender.description}</p>

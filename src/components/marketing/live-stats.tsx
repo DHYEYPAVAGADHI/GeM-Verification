@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { animate, useInView, useReducedMotion } from "framer-motion";
 import { Activity, FileWarning, IndianRupee, Timer } from "lucide-react";
+import { useI18n } from "@/lib/i18n/provider";
 
 type Stat = {
   icon: typeof Activity;
@@ -13,34 +14,6 @@ type Stat = {
 };
 
 const nfIN = new Intl.NumberFormat("en-IN");
-
-const stats: Stat[] = [
-  {
-    icon: Activity,
-    label: "Total Bids Evaluated via AI",
-    value: 245892,
-    format: (n) => nfIN.format(Math.round(n)),
-  },
-  {
-    icon: Timer,
-    label: "Processing Hours Saved",
-    value: 85400,
-    format: (n) => nfIN.format(Math.round(n)),
-    suffix: "+",
-  },
-  {
-    icon: FileWarning,
-    label: "Tampered Documents Flagged",
-    value: 1204,
-    format: (n) => nfIN.format(Math.round(n)),
-  },
-  {
-    icon: IndianRupee,
-    label: "Public Funds Protected",
-    value: 450.5,
-    format: (n) => `₹${n.toFixed(1)} Cr`,
-  },
-];
 
 function Counter({ stat }: { stat: Stat }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -73,6 +46,15 @@ function Counter({ stat }: { stat: Stat }) {
 }
 
 export function LiveStats() {
+  const { dict } = useI18n();
+  const s = dict.stats.items;
+  const stats: Stat[] = [
+    { icon: Activity, label: s.bids, value: 245892, format: (n) => nfIN.format(Math.round(n)) },
+    { icon: Timer, label: s.hours, value: 85400, format: (n) => nfIN.format(Math.round(n)), suffix: "+" },
+    { icon: FileWarning, label: s.tampered, value: 1204, format: (n) => nfIN.format(Math.round(n)) },
+    { icon: IndianRupee, label: s.funds, value: 450.5, format: (n) => `₹${n.toFixed(1)} Cr` },
+  ];
+
   const [now, setNow] = useState<string | null>(null);
   useEffect(() => {
     const tick = () =>
@@ -89,14 +71,12 @@ export function LiveStats() {
       <div className="section">
         <div className="mb-8 flex flex-col items-center justify-between gap-2 text-center sm:flex-row sm:text-left">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gov-orange/90">Live platform metrics</p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Real-time impact across the Government e-Marketplace
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gov-orange/90">{dict.stats.eyebrow}</p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">{dict.stats.heading}</h2>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
             <span className="h-2 w-2 animate-pulse rounded-full bg-gov-green" />
-            Updated {now ?? "—"} IST
+            {dict.stats.updated} {now ?? "—"} IST
           </span>
         </div>
 
@@ -111,9 +91,7 @@ export function LiveStats() {
             </div>
           ))}
         </dl>
-        <p className="mt-4 text-center text-[11px] text-white/45 sm:text-left">
-          Figures are illustrative prototype data for Smart India Hackathon 2026.
-        </p>
+        <p className="mt-4 text-center text-[11px] text-white/45 sm:text-left">{dict.stats.disclaimer}</p>
       </div>
     </section>
   );

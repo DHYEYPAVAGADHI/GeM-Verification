@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getPublicTenders, type PublicTender, type PublicTenderList } from "@/lib/public-tenders";
+import { getDict } from "@/lib/i18n/server";
 import { TendersBrowser } from "./tenders-browser";
 
 export const metadata: Metadata = {
@@ -57,6 +58,7 @@ export default async function PublicTendersPage() {
     realOpenTenders(),
   ]);
   const data = merge(real, feed);
+  const { dict } = getDict();
 
   return (
     <div className="bg-white">
@@ -65,13 +67,9 @@ export default async function PublicTendersPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gov-orange">
             Government e-Marketplace
           </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-gov-navy sm:text-3xl">
-            Ongoing Bids
-          </h1>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-gov-navy sm:text-3xl">{dict.tenders.title}</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-soft">
-            {data.count.toLocaleString("en-IN")} live bid opportunities across central
-            ministries and departments. Browsing is open to all — signing in is required
-            only to participate.
+            {data.count.toLocaleString("en-IN")} — {dict.tenders.subtitle}
           </p>
         </div>
       </div>

@@ -3,12 +3,14 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { ArrowRight } from "lucide-react";
 import { googleSignInAction, loginAction } from "@/lib/actions";
+import { useI18n } from "@/lib/i18n/provider";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { dict } = useI18n();
   return (
     <button type="submit" className="btn w-full rounded-md bg-gov-orange text-white hover:bg-gov-orange-dark" disabled={pending}>
-      {pending ? "Signing in…" : "Sign in"}
+      {pending ? dict.login.signingIn : dict.common.signIn}
       {!pending && <ArrowRight className="h-4 w-4" />}
     </button>
   );
@@ -16,10 +18,11 @@ function SubmitButton() {
 
 function GoogleButton() {
   const { pending } = useFormStatus();
+  const { dict } = useI18n();
   return (
     <button type="submit" className="btn-ghost w-full" disabled={pending}>
       <GoogleGlyph />
-      {pending ? "Connecting…" : "Continue with Google"}
+      {pending ? dict.login.connecting : dict.login.continueGoogle}
     </button>
   );
 }
@@ -32,6 +35,7 @@ export function LoginForm({
   googleEnabled?: boolean;
 }) {
   const [error, formAction] = useFormState(loginAction, undefined);
+  const { dict } = useI18n();
 
   return (
     <div className="mt-6 space-y-4">
@@ -42,7 +46,7 @@ export function LoginForm({
           </form>
           <div className="flex items-center gap-3 text-xs text-ink-muted">
             <span className="h-px flex-1 bg-line" />
-            or with email
+            {dict.login.orWithEmail}
             <span className="h-px flex-1 bg-line" />
           </div>
         </>
@@ -52,7 +56,7 @@ export function LoginForm({
         <input type="hidden" name="redirectTo" value={callbackUrl || "/dashboard"} />
         <div>
           <label className="label" htmlFor="email">
-            Email
+            {dict.login.email}
           </label>
           <input
             id="email"
@@ -66,7 +70,7 @@ export function LoginForm({
         </div>
         <div>
           <label className="label" htmlFor="password">
-            Password
+            {dict.login.password}
           </label>
           <input
             id="password"

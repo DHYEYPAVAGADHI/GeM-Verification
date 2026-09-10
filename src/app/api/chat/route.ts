@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPublicTenders } from "@/lib/public-tenders";
-import { streamChat, watsonxConfigured, type ChatMessage } from "@/lib/watsonx";
+import { streamAssistant, assistantMode, type ChatMessage } from "@/lib/assistant";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,13 +34,6 @@ async function tenderGrounding(): Promise<ChatMessage | null> {
 }
 
 export async function POST(req: Request) {
-  if (!watsonxConfigured()) {
-    return NextResponse.json(
-      { error: "The assistant is not configured. Set WATSONX_* environment variables." },
-      { status: 503 },
-    );
-  }
-
   let body: { messages?: unknown };
   try {
     body = await req.json();
@@ -71,12 +64,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const stream = await streamChat(augmented);
+    const stream = await streamAssistant(augmented);
     return new Response(stream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
         "X-Accel-Buffering": "no",
+        "X-Assistant-Mode": assistantMode(),
       },
     });
   } catch (err) {

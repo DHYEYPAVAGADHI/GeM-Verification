@@ -60,6 +60,16 @@ export async function googleSignInAction() {
   await signIn("google", { redirectTo: "/vendor" });
 }
 
+/** Generate a 6-digit MPIN not already issued to another vendor. */
+async function mintUniqueMpin(): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const mpin = String(Math.floor(100000 + Math.random() * 900000));
+    const clash = await db.vendorProfile.findUnique({ where: { mpin }, select: { id: true } });
+    if (!clash) return mpin;
+  }
+  throw new Error("Could not allocate an MPIN — please try again.");
+}
+
 export async function registerAction(_prev: string | undefined, formData: FormData) {
   const g = (k: string) => String(formData.get(k) ?? "").trim();
   const role = g("role") === "OFFICER" ? "OFFICER" : "VENDOR";
@@ -67,47 +77,19 @@ export async function registerAction(_prev: string | undefined, formData: FormDa
   const email = g("email").toLowerCase();
   const password = g("password");
   const confirm = g("confirm");
-  const pan = g("pan").toUpperCase();
-  const gstin = g("gstin").toUpperCase();
 
   if (!name || name.length < 2) return "Enter your name / organisation.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
   if (password.length < 8) return "Password must be at least 8 characters.";
   if (password !== confirm) return "Passwords do not match.";
-  if (role === "VENDOR") {
-    if (pan && !is_valid_pan(pan)) return "PAN format is invalid (AAAAA0000A).";
-    if (gstin && !is_valid_gstin(gstin)) return "GSTIN is invalid — the checksum digit does not verify.";
-  }
 
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) return "An account with this email already exists. Please sign in.";
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  if (role === "VENDOR") {
-    const profile = await db.vendorProfile.create({
-      data: {
-        orgName: name,
-        constitution: "Private Limited Company",
-        pan: pan || "",
-        gstin: gstin || "",
-        registeredAddress: "",
-      },
-    });
-    await db.user.create({
-      data: { email, name, passwordHash, role: "VENDOR", vendorId: profile.id },
-    });
-    await appendAudit({
-      actor: name,
-      action: "ACCOUNT_CREATED",
-      entityType: "VendorProfile",
-      entityId: profile.id,
-      summary: `New vendor account registered: ${email}`,
-    });
-  } else {
-    const user = await db.user.create({
-      data: { email, name, passwordHash, role: "OFFICER" },
-    });
+  if (role === "OFFICER") {
+    const user = await db.user.create({ data: { email, name, passwordHash, role: "OFFICER" } });
     await appendAudit({
       actor: name,
       action: "ACCOUNT_CREATED",
@@ -115,14 +97,113 @@ export async function registerAction(_prev: string | undefined, formData: FormDa
       entityId: user.id,
       summary: `New procurement-officer account registered: ${email}`,
     });
+    try {
+      await signIn("credentials", { email, password, redirectTo: "/dashboard" });
+    } catch (err) {
+      if (err instanceof AuthError) return "Account created — please sign in.";
+      throw err;
+    }
+    return undefined;
   }
 
+  // ---- vendor: full statutory registration ----
+  const pan = g("pan").toUpperCase();
+  const gstin = g("gstin").toUpperCase();
+  const cin = g("cin").toUpperCase();
+  const constitution = g("constitution") || "Private Limited Company";
+  const registeredAddress = g("registeredAddress");
+  const state = g("state");
+  const sector = g("sector");
+  const aadhaar = g("aadhaar").replace(/\s+/g, "");
+  const isMsme = g("isMsme") === "yes";
+  const udyamNo = g("udyamNo").toUpperCase();
+  const msmeClass = g("msmeClass");
+  const turnoverCr = Number(g("turnoverCr"));
+  const caUdin = g("caUdin").toUpperCase();
+  const miiPct = Number(g("miiPct"));
+  const directorName = g("directorName");
+  const directorDin = g("directorDin");
+
+  if (!is_valid_pan(pan)) return "PAN format is invalid (AAAAA0000A).";
+  if (!is_valid_gstin(gstin)) return "GSTIN is invalid — the checksum digit does not verify.";
+  if (gstin.slice(2, 12) !== pan) return "GSTIN does not embed the PAN you entered (characters 3–12 must equal the PAN).";
+  if (cin && !/^[LUu]\d{5}[A-Za-z]{2}\d{4}[A-Za-z]{3}\d{6}$/.test(cin)) return "CIN format is invalid (21 characters, e.g. U72900KA2015PTC000001).";
+  if (!registeredAddress || registeredAddress.length < 10) return "Enter the full registered address.";
+  if (!state) return "Select your state / UT.";
+  if (aadhaar && !/^\d{12}$/.test(aadhaar)) return "Aadhaar of the authorised signatory must be 12 digits.";
+  if (isMsme && !/^UDYAM-[A-Z]{2}-\d{2}-\d{7}$/.test(udyamNo)) return "Enter a valid Udyam number (UDYAM-XX-00-0000000) or set MSME to No.";
+  if (isMsme && !msmeClass) return "Select your MSME class (Micro / Small / Medium).";
+  if (!Number.isFinite(turnoverCr) || turnoverCr < 0) return "Enter last financial year turnover in ₹ crore.";
+  if (!Number.isFinite(miiPct) || miiPct < 0 || miiPct > 100) return "Make-in-India local content must be between 0 and 100.";
+  if (!directorName) return "Enter the name of an authorised director / signatory.";
+  if (!/^\d{8}$/.test(directorDin)) return "Director DIN must be 8 digits.";
+
+  const dupPan = await db.vendorProfile.findFirst({ where: { pan }, select: { id: true } });
+  if (dupPan) return "A vendor with this PAN is already registered.";
+
+  const aadhaarMasked = aadhaar ? `XXXX XXXX ${aadhaar.slice(-4)}` : "";
+  const mpin = await mintUniqueMpin();
+
+  const { appendRegistryRecord } = await import("@/lib/registry");
+  let registryBidderId: string | null = null;
   try {
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: role === "OFFICER" ? "/dashboard" : "/vendor",
+    const r = await appendRegistryRecord({
+      companyName: name,
+      loginEmail: email,
+      aadhaarMasked,
+      pan,
+      gstin,
+      cin,
+      isMsme,
+      udyamNo: isMsme ? udyamNo : "",
+      turnoverCr,
+      caUdin,
+      miiPct,
+      directorName,
+      directorDin,
+      registeredAddress,
     });
+    registryBidderId = r.bidderId;
+  } catch {
+    // Registry file not writable in this environment — continue; the account is still created.
+    registryBidderId = null;
+  }
+
+  const profile = await db.vendorProfile.create({
+    data: {
+      orgName: name,
+      constitution,
+      cin: cin || null,
+      pan,
+      gstin,
+      udyamNo: isMsme ? udyamNo : null,
+      msmeClass: isMsme ? msmeClass : null,
+      registeredAddress,
+      state,
+      sector: sector || null,
+      turnoverY3: turnoverCr,
+      aadhaarMasked: aadhaarMasked || null,
+      directorName,
+      directorDin,
+      caUdin: caUdin || null,
+      miiPct: Math.round(miiPct),
+      registryBidderId,
+      mpin,
+      mpinIssuedAt: new Date(),
+    },
+  });
+  await db.user.create({ data: { email, name, passwordHash, role: "VENDOR", vendorId: profile.id } });
+  await appendAudit({
+    actor: name,
+    action: "ACCOUNT_CREATED",
+    entityType: "VendorProfile",
+    entityId: profile.id,
+    summary: `New vendor registered: ${email}${registryBidderId ? ` (registry ${registryBidderId})` : ""}`,
+    payload: { pan, gstin, isMsme, registryBidderId },
+  });
+
+  try {
+    await signIn("credentials", { email, password, redirectTo: "/onboarding/mpin" });
   } catch (err) {
     if (err instanceof AuthError) return "Account created — please sign in.";
     throw err;
@@ -130,21 +211,74 @@ export async function registerAction(_prev: string | undefined, formData: FormDa
   return undefined;
 }
 
+/* ------------------------------- MPIN -------------------------------- */
+
+/** One-time confirmation after registration that the vendor saved their MPIN. */
+export async function acknowledgeMpin() {
+  const user = await requireVendor();
+  await db.vendorProfile.update({ where: { id: user.vendorId! }, data: { mpinAckAt: new Date() } });
+  revalidatePath("/vendor");
+  redirect("/vendor");
+}
+
+/** Reveal the MPIN on the profile page — only after the account password re-verifies. */
+export async function revealMpin(password: string): Promise<{ ok: true; mpin: string } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.vendorId) return { ok: false, error: "Not authorised" };
+  const account = await db.user.findUnique({ where: { id: session.user.id }, select: { passwordHash: true } });
+  if (!account) return { ok: false, error: "Account not found" };
+  const good = await bcrypt.compare(password, account.passwordHash);
+  if (!good) return { ok: false, error: "Password is incorrect." };
+  const profile = await db.vendorProfile.findUnique({
+    where: { id: session.user.vendorId },
+    select: { mpin: true },
+  });
+  if (!profile?.mpin) return { ok: false, error: "No MPIN on file — contact support." };
+  await appendAudit({
+    actor: session.user.name ?? "Vendor",
+    action: "MPIN_VIEWED",
+    entityType: "VendorProfile",
+    entityId: session.user.vendorId,
+    summary: "Vendor revealed their MPIN after password re-verification",
+  });
+  return { ok: true, mpin: profile.mpin };
+}
+
 /* ------------------------------ vendor ------------------------------- */
 
-export async function startBid(tenderId: string) {
+export async function startBid(tenderId: string, formData?: FormData) {
   const user = await requireVendor();
   const existing = await db.bid.findUnique({
     where: { tenderId_vendorId: { tenderId, vendorId: user.vendorId! } },
   });
   if (existing) redirect(`/vendor/bids/${existing.id}`);
+
+  const profile = await db.vendorProfile.findUniqueOrThrow({
+    where: { id: user.vendorId! },
+    select: { mpin: true },
+  });
+  const entered = String(formData?.get("mpin") ?? "").trim();
+  if (!profile.mpin) {
+    return "Your account has no MPIN yet — complete registration first.";
+  }
+  if (entered !== profile.mpin) {
+    await appendAudit({
+      actor: user.name ?? "Vendor",
+      action: "MPIN_REJECTED",
+      entityType: "Tender",
+      entityId: tenderId,
+      summary: "Incorrect MPIN entered when starting a bid",
+    });
+    return "Incorrect MPIN. Enter the 6-digit MPIN issued at registration.";
+  }
+
   const bid = await db.bid.create({ data: { tenderId, vendorId: user.vendorId!, status: "DRAFT" } });
   await appendAudit({
     actor: user.name ?? "Vendor",
     action: "BID_STARTED",
     entityType: "Bid",
     entityId: bid.id,
-    summary: `Draft bid created`,
+    summary: `Draft bid created — MPIN verified`,
   });
   redirect(`/vendor/bids/${bid.id}`);
 }
@@ -542,17 +676,155 @@ export async function setDocumentReview(bidDocId: string, action: "ACCEPTED" | "
   revalidatePath(`/dashboard/bids/${doc.bidId}`);
 }
 
-export async function recordDecision(bidId: string, verdict: "QUALIFIED" | "DISQUALIFIED", reason: string) {
-  const user = await requireOfficer();
+/** Notify every login account attached to a vendor company. */
+async function notifyVendor(
+  vendorId: string,
+  n: { kind: string; title: string; body: string; href?: string; bidId?: string },
+) {
+  const users = await db.user.findMany({ where: { vendorId }, select: { id: true } });
+  if (users.length === 0) return;
+  await db.notification.createMany({
+    data: users.map((u) => ({
+      userId: u.id,
+      kind: n.kind,
+      title: n.title,
+      body: n.body,
+      href: n.href ?? null,
+      bidId: n.bidId ?? null,
+    })),
+  });
+}
+
+/** Shared decision path — records the Decision, moves the bid, audits, notifies. */
+async function applyDecision(
+  bidId: string,
+  verdict: "QUALIFIED" | "DISQUALIFIED",
+  reason: string,
+  officer: { id: string; name?: string | null },
+  origin: "officer" | "ai-accepted",
+) {
+  const bid = await db.bid.findUnique({
+    where: { id: bidId },
+    include: { tender: { select: { refNo: true, title: true } } },
+  });
+  if (!bid) throw new Error("Bid not found");
+
   await db.decision.upsert({
     where: { bidId },
-    create: { bidId, officerId: user.id, verdict, reason },
+    create: { bidId, officerId: officer.id, verdict, reason },
     update: { verdict, reason, decidedAt: new Date() },
   });
   await db.bid.update({ where: { id: bidId }, data: { status: verdict } });
-  await appendAudit({ actor: user.name ?? "Officer", action: "DECISION_RECORDED", entityType: "Bid", entityId: bidId, summary: `Officer recorded: ${verdict}`, payload: { reason } });
+  await appendAudit({
+    actor: officer.name ?? "Officer",
+    action: origin === "ai-accepted" ? "DECISION_RECORDED_AI_ACCEPTED" : "DECISION_RECORDED",
+    entityType: "Bid",
+    entityId: bidId,
+    summary: `${verdict} on ${bid.tender.refNo}${origin === "ai-accepted" ? " (AI recommendation accepted)" : ""}`,
+    payload: { reason, origin },
+  });
+
+  await notifyVendor(bid.vendorId, {
+    kind: verdict === "DISQUALIFIED" ? "BID_DISQUALIFIED" : "BID_QUALIFIED",
+    title:
+      verdict === "DISQUALIFIED"
+        ? `Bid not qualified — ${bid.tender.refNo}`
+        : `Bid qualified — ${bid.tender.refNo}`,
+    body:
+      verdict === "DISQUALIFIED"
+        ? `Your bid for "${bid.tender.title}" was not taken forward. Reason: ${reason}`
+        : `Your bid for "${bid.tender.title}" has been qualified for technical evaluation.`,
+    href: `/vendor/bids/${bidId}`,
+    bidId,
+  });
+
   revalidatePath(`/dashboard/bids/${bidId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/bulk-verification");
+  revalidatePath("/vendor");
+  revalidatePath("/vendor/bids");
+}
+
+export async function recordDecision(bidId: string, verdict: "QUALIFIED" | "DISQUALIFIED", reason: string) {
+  const user = await requireOfficer();
+  await applyDecision(bidId, verdict, reason, user, "officer");
+}
+
+const RECO_TO_VERDICT: Record<string, "QUALIFIED" | "DISQUALIFIED" | null> = {
+  Recommended: "QUALIFIED",
+  "Not Recommended": "DISQUALIFIED",
+  "Review Required": null,
+};
+
+/** Build the officer-facing reason string from the engine's own output. */
+function reasonFromRun(run: {
+  recommendation: string;
+  score: number;
+  rationale: string;
+  checks: { label: string; status: string; detail: string }[];
+}) {
+  const blockers = run.checks.filter((c) => c.status === "failed");
+  const head =
+    run.recommendation === "Recommended"
+      ? `AI recommendation accepted — compliance score ${run.score}/100, no blocking checks.`
+      : `AI recommendation accepted — compliance score ${run.score}/100.`;
+  const detail = blockers.length
+    ? " Blocking checks: " + blockers.map((c) => `${c.label} (${c.detail})`).join("; ") + "."
+    : "";
+  return (head + detail).slice(0, 900);
+}
+
+/** Officer accepts the engine's recommendation for one bid, as-is. */
+export async function acceptAiRecommendation(bidId: string) {
+  const user = await requireOfficer();
+  const bid = await db.bid.findUnique({
+    where: { id: bidId },
+    include: { runs: { orderBy: { startedAt: "desc" }, take: 1, include: { checks: true } } },
+  });
+  const run = bid?.runs[0];
+  if (!bid || !run) throw new Error("This bid has not been verified yet");
+  const verdict = RECO_TO_VERDICT[run.recommendation];
+  if (!verdict) {
+    throw new Error('"Review Required" bids need a manual decision — open the dossier');
+  }
+  await applyDecision(bidId, verdict, reasonFromRun(run), user, "ai-accepted");
+  return { verdict };
+}
+
+/** Officer accepts every clear AI recommendation on a tender in one pass. */
+export async function acceptAllAiRecommendations(tenderId: string) {
+  const user = await requireOfficer();
+  const bids = await db.bid.findMany({
+    where: { tenderId, status: { notIn: ["DRAFT", "WITHDRAWN"] }, decision: null },
+    include: { runs: { orderBy: { startedAt: "desc" }, take: 1, include: { checks: true } } },
+  });
+  let qualified = 0;
+  let disqualified = 0;
+  let skipped = 0;
+  for (const bid of bids) {
+    const run = bid.runs[0];
+    const verdict = run ? RECO_TO_VERDICT[run.recommendation] : null;
+    if (!run || !verdict) {
+      skipped++;
+      continue;
+    }
+    await applyDecision(bid.id, verdict, reasonFromRun(run), user, "ai-accepted");
+    verdict === "QUALIFIED" ? qualified++ : disqualified++;
+  }
+  revalidatePath("/dashboard/bulk-verification");
+  return { qualified, disqualified, skipped };
+}
+
+/* --------------------------- notifications --------------------------- */
+
+export async function markNotificationsRead(ids?: string[]) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Not authorised");
+  await db.notification.updateMany({
+    where: { userId: session.user.id, readAt: null, ...(ids?.length ? { id: { in: ids } } : {}) },
+    data: { readAt: new Date() },
+  });
+  revalidatePath("/vendor");
 }
 
 /* --------------------- officer: vendor change approvals --------------- */

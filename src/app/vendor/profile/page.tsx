@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { gateway } from "@/lib/engine/gateway";
 import { inr } from "@/lib/utils";
 import { ProfileChangeForm, type PendingChange, type ReviewedChange } from "@/components/vendor/profile-change-form";
+import { ViewMpinCard } from "@/components/vendor/view-mpin-card";
 
 function Verified({ ok, source }: { ok: boolean; source: string }) {
   return ok ? (
@@ -80,6 +81,8 @@ export default async function VendorProfilePage() {
           Your digital vendor file. Every registration is checked live against its source.
         </p>
       </div>
+
+      <ViewMpinCard />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card card-pad">

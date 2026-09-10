@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { heroBanners } from "@/components/marketing/hero-banners";
+import { useI18n } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
 const N = heroBanners.length;
@@ -14,6 +15,7 @@ const INTERVAL = 4500;
 const track = [heroBanners[N - 1], ...heroBanners, heroBanners[0]];
 
 export function HeroCarousel() {
+  const { dict } = useI18n();
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(1);
   const [animate, setAnimate] = useState(true);
@@ -97,7 +99,7 @@ export function HeroCarousel() {
             const Art = b.art;
             return (
               <div key={i} className="h-full w-full shrink-0" aria-hidden={i !== index}>
-                <Art />
+                <Art text={dict.hero[b.key]} />
               </div>
             );
           })}
@@ -152,20 +154,20 @@ export function HeroCarousel() {
         <div className="section flex flex-col items-center justify-between gap-3 py-4 sm:flex-row">
           <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gov-navy/75">
             <span className="h-1.5 w-1.5 rounded-full bg-gov-green" />
-            Smart India Hackathon 2026 · Problem Statement 26100
+            {dict.heroStrip.sih}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
-              href={cur.primary.href}
+              href={cur.primary}
               className="btn rounded-md bg-gov-orange px-6 py-2.5 text-sm font-bold text-white hover:bg-gov-orange-dark"
             >
-              {cur.primary.label} <ArrowRight className="h-4 w-4" />
+              {dict.hero[cur.key].primary} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href={cur.secondary.href}
+              href={cur.secondary}
               className="btn rounded-md border border-gov-navy/25 bg-white px-5 py-2.5 text-sm text-gov-navy hover:bg-white/60"
             >
-              {cur.secondary.label}
+              {dict.hero[cur.key].secondary}
             </Link>
           </div>
         </div>

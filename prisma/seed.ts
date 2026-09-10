@@ -19,8 +19,25 @@ const KIND_TO_DOCTYPE: Record<SampleSpec["kind"], string> = {
   MAKE_IN_INDIA: "MAKE_IN_INDIA",
 };
 
+async function notifyBidders(bidId: string, n: { kind: string; title: string; body: string }) {
+  const bid = await db.bid.findUniqueOrThrow({ where: { id: bidId }, include: { tender: true } });
+  const users = await db.user.findMany({ where: { vendorId: bid.vendorId }, select: { id: true } });
+  if (users.length === 0) return;
+  await db.notification.createMany({
+    data: users.map((u) => ({
+      userId: u.id,
+      kind: n.kind,
+      title: `${n.title} — ${bid.tender.refNo}`,
+      body: n.body,
+      href: `/vendor/bids/${bidId}`,
+      bidId,
+    })),
+  });
+}
+
 async function wipe() {
   // order matters for FK
+  await db.notification.deleteMany();
   await db.check.deleteMany();
   await db.verificationRun.deleteMany();
   await db.decision.deleteMany();
@@ -384,7 +401,7 @@ async function seedGov(v: VendorSeed) {
     });
 }
 
-async function seedVendorProfile(v: VendorSeed) {
+async function seedVendorProfile(v: VendorSeed, index = 0) {
   const profile = await db.vendorProfile.create({
     data: {
       orgName: v.orgName,
@@ -409,6 +426,12 @@ async function seedVendorProfile(v: VendorSeed) {
       sector: v.sector,
       state: v.state,
       employees: v.employees,
+      // Demo accounts come pre-provisioned with an acknowledged MPIN so they can
+      // enter tenders straight away. Stable, unique per seed order.
+      mpin: String(100100 + index * 111),
+      mpinIssuedAt: new Date("2026-08-01"),
+      mpinAckAt: new Date("2026-08-01"),
+      miiPct: v.sector.toLowerCase().includes("trad") ? 20 : 60,
     },
   });
   await db.user.create({
@@ -617,9 +640,9 @@ async function main() {
 
   console.log("· government records + vendor profiles");
   const profiles: Record<string, string> = {};
-  for (const v of VENDORS) {
+  for (const [vi, v] of VENDORS.entries()) {
     await seedGov(v);
-    const p = await seedVendorProfile(v);
+    const p = await seedVendorProfile(v, vi);
     profiles[v.key] = p.id;
     // vault documents
     await addProfileDoc(p.id, specFor(v, "GST_CERT"));
@@ -824,6 +847,11 @@ async function main() {
   });
   await db.bid.update({ where: { id: sunriseBid.id }, data: { status: "QUALIFIED" } });
   await appendAudit({ actor: officer.name, action: "DECISION_RECORDED", entityType: "Bid", entityId: sunriseBid.id, summary: "Officer recorded: QUALIFIED" });
+  await notifyBidders(sunriseBid.id, {
+    kind: "BID_QUALIFIED",
+    title: "Bid qualified",
+    body: 'Your bid has been qualified for technical evaluation. All statutory and tender-specific criteria met.',
+  });
 
   const abcBid = await db.bid.findFirstOrThrow({ where: { vendor: { orgName: { startsWith: "ABC" } } } });
   await db.decision.create({
@@ -837,6 +865,12 @@ async function main() {
   });
   await db.bid.update({ where: { id: abcBid.id }, data: { status: "DISQUALIFIED" } });
   await appendAudit({ actor: officer.name, action: "DECISION_RECORDED", entityType: "Bid", entityId: abcBid.id, summary: "Officer recorded: DISQUALIFIED" });
+  await notifyBidders(abcBid.id, {
+    kind: "BID_DISQUALIFIED",
+    title: "Bid not qualified",
+    body:
+      "Your bid was not taken forward. Reason: GST registration suspended (mandatory), EPFO non-compliant, CA turnover certificate shows tampering with an unverifiable UDIN, and a director is shared with a competing bidder on this tender.",
+  });
 
   console.log("\n✔ seed complete");
   console.log("  Officer : officer@gem.gov.in / Demo@12345");

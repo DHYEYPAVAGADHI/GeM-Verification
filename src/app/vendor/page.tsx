@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CircleAlert, FileWarning, Gauge } from "lucide-react";
+import { ArrowRight, CircleAlert, FileWarning, Gauge, XCircle } from "lucide-react";
 import { auth } from "@/auth";
-import { getOpenTenders, getVendorContext, profileReadiness } from "@/lib/queries";
+import { getNotifications, getOpenTenders, getVendorContext, profileReadiness } from "@/lib/queries";
 import { RiskGauge } from "@/components/ui/risk-gauge";
 import { Pill } from "@/components/ui/pill";
 import { Empty } from "@/components/ui/empty";
 import { bidStatusMeta } from "@/lib/domain";
-import { formatDate, inr } from "@/lib/utils";
+import { formatDate, inr, timeAgo } from "@/lib/utils";
 
 export default async function VendorDashboard() {
   const session = await auth();
@@ -19,9 +19,41 @@ export default async function VendorDashboard() {
   );
   const openTenders = await getOpenTenders();
   const myTenderIds = new Set(bids.map((b) => b.tenderId));
+  const { items: notifications } = await getNotifications(session!.user.id, 6);
+  const alerts = notifications.filter((n) => !n.readAt);
 
   return (
     <div className="space-y-8">
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((n) => (
+            <Link
+              key={n.id}
+              href={n.href ?? "/vendor/bids"}
+              className={
+                n.kind === "BID_DISQUALIFIED"
+                  ? "flex items-start gap-3 rounded-xl border border-risk-high/30 bg-risk-high-bg/50 p-4 transition-colors hover:bg-risk-high-bg/80"
+                  : "flex items-start gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:bg-canvas"
+              }
+            >
+              <XCircle
+                className={
+                  n.kind === "BID_DISQUALIFIED"
+                    ? "mt-0.5 h-5 w-5 shrink-0 text-risk-high"
+                    : "mt-0.5 h-5 w-5 shrink-0 text-brand-500"
+                }
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink">{n.title}</p>
+                <p className="mt-0.5 text-sm text-ink-muted">{n.body}</p>
+                <p className="mt-1 text-[11px] uppercase tracking-wide text-ink-muted">{timeAgo(n.createdAt)}</p>
+              </div>
+              <ArrowRight className="ml-auto mt-1 h-4 w-4 shrink-0 text-ink-muted" />
+            </Link>
+          ))}
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">{profile.orgName}</h1>
         <p className="mt-1 text-sm text-ink-muted">

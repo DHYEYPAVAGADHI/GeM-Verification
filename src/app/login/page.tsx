@@ -2,15 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { googleEnabled } from "@/auth";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { getDict } from "@/lib/i18n/server";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
-
-const demoAccounts = [
-  { role: "Procurement Officer", email: "officer@gem.gov.in", goes: "Verification console" },
-  { role: "Vendor — Apollo Technologies", email: "apollo@apollotech.in", goes: "Bidder portal" },
-  { role: "Vendor — Greenfield Traders", email: "sales@greenfieldtraders.co.in", goes: "Bidder portal" },
-];
 
 export default function LoginPage({
   searchParams,
@@ -21,27 +16,35 @@ export default function LoginPage({
 }) {
   const dest = searchParams.redirect ?? searchParams.callbackUrl;
   const isApplyRedirect = !!dest && dest.startsWith("/vendor/tenders/");
+  const { dict } = getDict();
+  const t = dict.login;
+
+  const demoAccounts = [
+    { role: t.roles.officer, email: "officer@gem.gov.in", goes: t.goes.console },
+    { role: t.roles.apollo, email: "apollo@apollotech.in", goes: t.goes.portal },
+    { role: t.roles.greenfield, email: "sales@greenfieldtraders.co.in", goes: t.goes.portal },
+  ];
 
   return (
     <AuthShell>
-      <h2 className="text-2xl font-bold tracking-tight text-gov-navy">Sign in</h2>
+      <h2 className="text-2xl font-bold tracking-tight text-gov-navy">{t.title}</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        Enter your credentials to continue. New to the platform?{" "}
+        {t.subtitle}{" "}
         <Link href="/register" className="font-semibold text-gov-orange hover:underline">
-          Create an account
+          {dict.common.createAccount}
         </Link>
       </p>
 
       {isApplyRedirect && (
         <p className="mt-4 rounded-lg border border-gov-navy/10 bg-blue-50 px-3 py-2 text-sm font-medium text-gov-navy">
-          Sign in to participate in this bid. We&rsquo;ll take you straight to its upload screen.
+          {t.applyNotice}
         </p>
       )}
 
       <LoginForm callbackUrl={dest} googleEnabled={googleEnabled} />
 
       <div className="mt-8">
-        <p className="eyebrow">Demo accounts · password Demo@12345</p>
+        <p className="eyebrow">{t.demoAccounts}</p>
         <div className="mt-2 space-y-2">
           {demoAccounts.map((a) => (
             <div
@@ -60,7 +63,7 @@ export default function LoginPage({
 
       <p className="mt-6 text-center text-xs text-ink-muted">
         <Link href="/" className="font-semibold text-gov-orange">
-          ← Back to the website
+          ← {dict.common.backToWebsite}
         </Link>
       </p>
     </AuthShell>

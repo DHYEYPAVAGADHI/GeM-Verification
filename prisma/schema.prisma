@@ -27,6 +27,25 @@ model User {
   vendorId     String?
   vendor       VendorProfile? @relation(fields: [vendorId], references: [id])
   createdAt    DateTime      @default(now())
+
+  notifications Notification[]
+}
+
+/// In-app notification shown on a user's dashboard (e.g. a bidder learning
+/// their bid was disqualified, and why).
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String    // "BID_DISQUALIFIED" | "BID_QUALIFIED" | "CLARIFICATION" | "AUDIT_COMPLETE"
+  title     String
+  body      String
+  href      String?   // where the "view" link should go
+  bidId     String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
 }
 
 /* ------------------------- Vendor company file -------------------------- */
@@ -57,6 +76,20 @@ model VendorProfile {
   sector            String?
   state             String?
   employees         Int?
+
+  // Collected at registration, mirrored into the national bidder registry CSV
+  aadhaarMasked     String?  // authorised signatory, "XXXX XXXX 1234"
+  directorName      String?
+  directorDin       String?
+  caUdin            String?  // UDIN on the latest CA-certified turnover statement
+  miiPct            Int?     // Make-in-India local-content percentage
+  registryBidderId  String?  // BID_xxxx row minted in the registry CSV
+
+  // MPIN — 6-digit code issued at registration, required to enter any tender
+  mpin              String?  @unique
+  mpinIssuedAt      DateTime?
+  mpinAckAt         DateTime? // vendor confirmed they saved it (gates the portal)
+
   users             User[]
   documents         ProfileDocument[]
   bids              Bid[]

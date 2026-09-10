@@ -242,10 +242,24 @@ export default async function BidDetailPage({ params }: { params: { id: string }
 
       {/* documents */}
       <section className="card card-pad">
-        <h2 className="text-base font-bold text-ink">Document Verification ({bid.documents.length})</h2>
-        <p className="mb-4 text-xs text-ink-muted">
-          Each file: OCR extraction, government cross-check and integrity analysis
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-ink">Document Verification ({bid.documents.length})</h2>
+            <p className="mb-4 text-xs text-ink-muted">
+              Each file: OCR extraction, government cross-check and integrity analysis
+            </p>
+          </div>
+          {bid.documents.length > 0 && (
+            <a
+              href={`/api/dossier/combined/${bid.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost shrink-0 text-xs"
+            >
+              <Download className="h-4 w-4" /> All {bid.documents.length} as one PDF
+            </a>
+          )}
+        </div>
         <div className="space-y-2.5">
           {bid.documents.map((d) => (
             <DocReviewCard key={d.id} doc={d} />

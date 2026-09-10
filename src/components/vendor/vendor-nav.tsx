@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { UserMenu } from "@/components/ui/user-menu";
+import { NotificationBell, type NotificationItem } from "@/components/vendor/notification-bell";
 import { initials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,15 @@ const nav = [
   { label: "Document Vault", href: "/vendor/vault" },
 ];
 
-export function VendorNav({ org }: { org: string }) {
+export function VendorNav({
+  org,
+  notifications = [],
+  unread = 0,
+}: {
+  org: string;
+  notifications?: NotificationItem[];
+  unread?: number;
+}) {
   const pathname = usePathname();
   const active = (href: string) => (href === "/vendor" ? pathname === "/vendor" : pathname.startsWith(href));
 
@@ -38,7 +47,8 @@ export function VendorNav({ org }: { org: string }) {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          <NotificationBell items={notifications} unread={unread} />
           <UserMenu name={org} sub="Bidder portal" initials={initials(org)} />
         </div>
       </div>

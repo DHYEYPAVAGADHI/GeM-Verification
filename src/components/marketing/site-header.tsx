@@ -5,24 +5,9 @@ import { useState } from "react";
 import { Accessibility, ChevronDown, Menu, Phone, Search, X } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { GigwTicker } from "@/components/marketing/gigw-ticker";
+import { LanguageToggle } from "@/components/i18n/language-toggle";
+import { useI18n } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
-
-const nav = [
-  { label: "Home", href: "/#home" },
-  { label: "Ongoing Bids", href: "/tenders" },
-  { label: "AI Verification Services", href: "/#capabilities" },
-  { label: "Policies", href: "/#policies" },
-  { label: "Helpdesk", href: "/#helpdesk" },
-];
-
-const categories = [
-  "All Categories",
-  "Ongoing Bids",
-  "Tender Documents",
-  "Compliance Reports",
-  "Policy Circulars",
-  "Vendor Registrations",
-];
 
 function setFontScale(scale: "s" | "m" | "l") {
   const el = document.documentElement;
@@ -32,7 +17,7 @@ function setFontScale(scale: "s" | "m" | "l") {
 }
 
 function TopUtilityBar() {
-  const [lang, setLang] = useState<"en" | "hi">("en");
+  const { dict } = useI18n();
   const [reader, setReader] = useState(false);
 
   return (
@@ -43,7 +28,7 @@ function TopUtilityBar() {
           className="flex items-center gap-1.5 font-medium hover:text-gov-saffron"
         >
           <Phone className="h-3.5 w-3.5" aria-hidden />
-          Toll-Free 1800-419-3436
+          {dict.header.tollFree}
         </a>
 
         <div className="flex items-center gap-3">
@@ -51,7 +36,7 @@ function TopUtilityBar() {
             href="#main-content"
             className="hidden rounded px-1.5 py-0.5 hover:bg-white/10 focus:bg-white/15 sm:inline"
           >
-            Skip to Main Content
+            {dict.header.skipToContent}
           </a>
           <button
             type="button"
@@ -61,10 +46,10 @@ function TopUtilityBar() {
             className="hidden items-center gap-1 rounded px-1.5 py-0.5 hover:bg-white/10 sm:flex"
           >
             <Accessibility className="h-3.5 w-3.5" aria-hidden />
-            Screen Reader Access
+            {dict.header.screenReader}
           </button>
 
-          <span className="flex items-center gap-1" aria-label="Text size">
+          <span className="flex items-center gap-1" aria-label={dict.header.textSize}>
             <button
               onClick={() => setFontScale("s")}
               className="rounded px-1 hover:bg-white/10"
@@ -90,21 +75,7 @@ function TopUtilityBar() {
 
           <span className="h-3.5 w-px bg-white/25" aria-hidden />
 
-          <div className="flex items-center gap-1" aria-label="Language">
-            <button
-              onClick={() => setLang("en")}
-              className={cn("rounded px-1 hover:bg-white/10", lang === "en" && "font-bold text-gov-saffron")}
-            >
-              English
-            </button>
-            <span className="text-white/40">/</span>
-            <button
-              onClick={() => setLang("hi")}
-              className={cn("rounded px-1 hover:bg-white/10", lang === "hi" && "font-bold text-gov-saffron")}
-            >
-              हिन्दी
-            </button>
-          </div>
+          <LanguageToggle variant="bar" />
         </div>
       </div>
     </div>
@@ -112,6 +83,9 @@ function TopUtilityBar() {
 }
 
 function SearchBar({ id }: { id: string }) {
+  const { dict } = useI18n();
+  const c = dict.header.categories;
+  const categories = [c.all, c.bids, c.tenderDocs, c.complianceReports, c.policyCirculars, c.vendorRegistrations];
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
@@ -120,26 +94,26 @@ function SearchBar({ id }: { id: string }) {
     >
       <div className="relative hidden border-r border-slate-200 sm:block">
         <label htmlFor={`${id}-cat`} className="sr-only">
-          Search category
+          {dict.header.categories.all}
         </label>
         <select
           id={`${id}-cat`}
-          defaultValue="All Categories"
+          defaultValue={c.all}
           className="h-full appearance-none bg-slate-50 py-2.5 pl-3 pr-8 text-sm text-ink-soft outline-none"
         >
-          {categories.map((c) => (
-            <option key={c}>{c}</option>
+          {categories.map((label) => (
+            <option key={label}>{label}</option>
           ))}
         </select>
         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
       </div>
       <label htmlFor={id} className="sr-only">
-        Search the platform
+        {dict.header.search}
       </label>
       <input
         id={id}
         type="search"
-        placeholder="Search bids, tenders, policies, compliance reports…"
+        placeholder={dict.header.searchPlaceholder}
         className="min-w-0 flex-1 px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted"
       />
       <button
@@ -147,7 +121,7 @@ function SearchBar({ id }: { id: string }) {
         className="flex shrink-0 items-center gap-1.5 bg-gov-navy px-4 text-sm font-semibold text-white hover:bg-gov-navy-deep"
       >
         <Search className="h-4 w-4" />
-        <span className="hidden md:inline">Search</span>
+        <span className="hidden md:inline">{dict.header.search}</span>
       </button>
     </form>
   );
@@ -155,6 +129,14 @@ function SearchBar({ id }: { id: string }) {
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { dict } = useI18n();
+  const nav = [
+    { label: dict.nav.home, href: "/#home" },
+    { label: dict.nav.ongoingBids, href: "/tenders" },
+    { label: dict.nav.aiServices, href: "/#capabilities" },
+    { label: dict.nav.policies, href: "/#policies" },
+    { label: dict.nav.helpdesk, href: "/#helpdesk" },
+  ];
 
   return (
     <header className="relative z-40">
@@ -187,13 +169,13 @@ export function SiteHeader() {
               href="/register"
               className="btn rounded-md border border-gov-navy/25 bg-white px-4 py-2.5 text-gov-navy hover:bg-canvas"
             >
-              Sign Up
+              {dict.common.signUp}
             </Link>
             <Link
               href="/login"
               className="btn rounded-md bg-gov-orange px-5 py-2.5 text-white hover:bg-gov-orange-dark"
             >
-              Procurement Officer Login
+              {dict.common.officerLogin}
             </Link>
           </div>
         </div>
@@ -231,14 +213,14 @@ export function SiteHeader() {
                 onClick={() => setOpen(false)}
                 className="btn rounded-md border border-gov-navy/25 bg-white text-gov-navy"
               >
-                Sign Up
+                {dict.common.signUp}
               </Link>
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
                 className="btn rounded-md bg-gov-orange text-white"
               >
-                Procurement Officer Login
+                {dict.common.officerLogin}
               </Link>
             </div>
           </div>

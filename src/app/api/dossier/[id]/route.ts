@@ -18,12 +18,24 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   let page = doc.addPage([595, 842]);
   let y = 800;
+  // Helvetica (WinAnsi) can't encode ₹, ≥, en/em dashes, curly quotes — fold them.
+  const wa = (s: string) =>
+    (s ?? "")
+      .replace(/₹/g, "Rs ")
+      .replace(/≥/g, ">=")
+      .replace(/≤/g, "<=")
+      .replace(/[–—]/g, "-")
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/[•·]/g, "-")
+      .replace(/…/g, "...")
+      .replace(/[^\x00-\xFF]/g, "");
   const line = (t: string, opts: { size?: number; bold?: boolean; gap?: number } = {}) => {
     if (y < 60) {
       page = doc.addPage([595, 842]);
       y = 800;
     }
-    page.drawText(t, { x: 48, y, size: opts.size ?? 10, font: opts.bold ? bold : font, color: rgb(0.1, 0.12, 0.18), maxWidth: 500, lineHeight: 13 });
+    page.drawText(wa(t), { x: 48, y, size: opts.size ?? 10, font: opts.bold ? bold : font, color: rgb(0.1, 0.12, 0.18), maxWidth: 500, lineHeight: 13 });
     y -= opts.gap ?? (opts.size && opts.size > 12 ? 22 : 15);
   };
 
