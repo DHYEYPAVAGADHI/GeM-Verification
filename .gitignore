@@ -22,3 +22,4 @@ next-env.d.ts
 
 # stray root copy of the bidder registry (real file lives in backend/app/data/)
 /gem_bidders_registry_1000.csv
+.env*.local

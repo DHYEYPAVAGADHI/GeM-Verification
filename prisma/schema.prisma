@@ -1,13 +1,16 @@
 // GeM Verify — data model
-// SQLite for local / demo. Swap `provider = "postgresql"` + DATABASE_URL for production.
+// Postgres (Neon) in every environment. `directUrl` is Neon's unpooled
+// connection — Prisma uses it for `db push` / migrate, the pooled `url` for
+// normal query traffic (serverless-safe on Vercel).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 /* ----------------------------- Identity ---------------------------------- */
@@ -436,4 +439,29 @@ model AuditEntry {
   payloadHash String
   prevHash   String
   hash       String
+}
+
+/// National bidder registry — the 1,000-row seeded dataset plus every entity
+/// that self-registers through /register. DB-backed (not a CSV file) so the
+/// AI bulk-audit lookups and new registrations both work on serverless
+/// deployments. The Python backend keeps its own CSV copy for its endpoints.
+model RegistryEntry {
+  id                String   @id @default(cuid())
+  bidderId          String   @unique
+  companyName       String
+  loginEmail        String?
+  aadhaarMasked     String?
+  pan               String   @unique
+  gstin             String   @unique
+  cin               String?
+  isMsme            Boolean  @default(false)
+  udyamNo           String?
+  turnoverCr        Float    @default(0)
+  caUdin            String?
+  miiPct            Int      @default(0)
+  directorName      String?
+  directorDin       String?
+  registeredAddress String?
+  tampered          Boolean  @default(false)
+  createdAt         DateTime @default(now())
 }

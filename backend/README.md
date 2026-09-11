@@ -26,6 +26,22 @@ uvicorn app.main:app --reload --port 8000
 pytest -q     # 9 tests: dataset integrity, cartel/fraud invariants, API contract
 ```
 
+## Deploying (Railway)
+
+A `Dockerfile` is included — it installs `libzbar0` (pyzbar/QR decode) and
+`libgl1`/`libglib2.0-0` (OpenCV) on top of `python:3.11-slim`, since Railway's
+auto-detected Nixpacks build doesn't have those system libraries.
+
+```bash
+railway init                          # from backend/
+railway up
+railway domain                        # get a public URL
+railway variable set GEMV_ANTHROPIC_API_KEY=sk-ant-...
+railway variable set 'GEMV_FRONTEND_ORIGINS=["https://your-app.vercel.app"]'
+```
+
+Then point the frontend's `NEXT_PUBLIC_ENGINE_URL` at the Railway URL.
+
 ## Project layout
 
 ```

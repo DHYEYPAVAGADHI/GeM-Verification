@@ -21,12 +21,17 @@ review the scored result and record the decision.
 
 ```bash
 npm install
-npm run db:push     # create the SQLite database
-npm run db:seed     # seed government records, vendors, tenders, bids (runs the engine)
+cp .env.example .env         # fill in DATABASE_URL (Postgres — see below)
+npm run db:push               # sync the schema
+npm run db:seed               # seed government records, vendors, tenders, bids, registry
 npm run dev
 ```
 
 Open http://localhost:3000.
+
+**Database:** Postgres in every environment (no SQLite). Locally, the easiest path is a
+free [Neon](https://neon.tech) branch — or run `vercel env pull` if this project is
+already linked to a Vercel project with the Neon integration installed.
 
 **Demo accounts** (password `Demo@12345` for all):
 
@@ -46,7 +51,7 @@ npm run db:studio            # inspect the database
 
 - **Next.js 14** App Router · **React 18** · Server Actions
 - **Auth.js v5** — Credentials + optional Google OAuth, role-gated middleware (`OFFICER` / `VENDOR` / `ADMIN`)
-- **Prisma + SQLite** — swap `provider` + `DATABASE_URL` for Postgres in production
+- **Prisma + Postgres** (Neon) — pooled `DATABASE_URL` for queries, `DATABASE_URL_UNPOOLED` (Neon's direct connection) for `db push` / migrate
 - **Tailwind CSS** — IBM Plex Sans / Mono, single deliberate light theme
 - **framer-motion** — page transitions, scroll reveals, count-ups, animated gauges & progress
 - **sonner** — toasts · **Recharts** · **lucide-react**
@@ -58,6 +63,21 @@ The login page shows **Continue with Google** when `AUTH_GOOGLE_ID` / `AUTH_GOOG
 are set (see `.env.example`). First Google login creates a vendor account with a
 starter company profile. Without the env vars the button is simply hidden and
 the demo runs on the seeded email accounts.
+
+## Deployment
+
+- **Frontend** — this Next.js app, on **Vercel**. Database is **Postgres on Neon**,
+  provisioned as a Vercel Marketplace integration (`vercel integration add neon`),
+  which injects `DATABASE_URL` / `DATABASE_URL_UNPOOLED` automatically.
+- **Backend** (`backend/`) — the FastAPI compliance engine, on **Railway** (a
+  `Dockerfile` is included so system deps for OpenCV/pyzbar build correctly).
+  Point the frontend's `NEXT_PUBLIC_ENGINE_URL` at its Railway URL.
+- After the first deploy, run `npm run db:push && npm run db:seed` once against
+  the production `DATABASE_URL` to create the schema and demo data (including the
+  1,000-row bidder registry, now DB-backed — no CSV file writes at runtime, so
+  vendor self-registration works on Vercel's read-only filesystem).
+- The chatbot needs no deployment step — it falls back to a local knowledge base
+  with no API key configured (see `.env.example` to wire up watsonx or Claude).
 
 ## The verification engine (`src/lib/engine/`)
 

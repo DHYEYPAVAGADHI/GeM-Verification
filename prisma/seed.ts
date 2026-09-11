@@ -1,4 +1,6 @@
 import { createHash } from "crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import bcrypt from "bcryptjs";
 import { db } from "../src/lib/db";
 import { generateSample, type SampleSpec } from "../src/lib/engine/samples";
@@ -60,6 +62,88 @@ async function wipe() {
   await db.govDpiit.deleteMany();
   await db.govDebarment.deleteMany();
   await db.auditEntry.deleteMany();
+  await db.registryEntry.deleteMany();
+}
+
+/** Split one CSV line, honouring double-quoted fields that contain commas. */
+function splitCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === "," && !inQuotes) {
+      out.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+/** Bulk-load the 1,000-row national bidder registry CSV into RegistryEntry. */
+async function seedRegistryFromCsv() {
+  const csvPath = path.join(process.cwd(), "backend", "app", "data", "gem_bidders_registry_1000.csv");
+  const raw = await readFile(csvPath, "utf-8").catch(() => null);
+  if (!raw) {
+    console.log("  (registry CSV not found — skipping; run from the repo root)");
+    return;
+  }
+  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const header = splitCsvLine(lines[0]).map((h) => h.trim());
+  const col = (name: string) => header.indexOf(name);
+  const ci = {
+    bidderId: col("bidder_id"),
+    companyName: col("company_name"),
+    loginEmail: col("login_email"),
+    aadhaar: col("aadhaar_number"),
+    pan: col("pan_number"),
+    gstin: col("gstin"),
+    cin: col("cin_number"),
+    isMsme: col("is_msme"),
+    udyamNo: col("udyam_reg_no"),
+    turnoverCr: col("fy_turnover_cr"),
+    caUdin: col("ca_udin"),
+    miiPct: col("mii_percentage"),
+    directorName: col("director_name"),
+    directorDin: col("director_din"),
+    address: col("registered_address"),
+    tampered: col("tampered_flag"),
+  };
+
+  const rows = lines.slice(1).map((line) => {
+    const f = splitCsvLine(line);
+    return {
+      bidderId: f[ci.bidderId]?.trim() ?? "",
+      companyName: f[ci.companyName]?.trim() ?? "",
+      loginEmail: f[ci.loginEmail]?.trim() || null,
+      aadhaarMasked: f[ci.aadhaar]?.trim() || null,
+      pan: (f[ci.pan] ?? "").trim().toUpperCase(),
+      gstin: (f[ci.gstin] ?? "").trim().toUpperCase(),
+      cin: f[ci.cin]?.trim() || null,
+      isMsme: (f[ci.isMsme] ?? "").trim().toLowerCase() === "true",
+      udyamNo: f[ci.udyamNo]?.trim() || null,
+      turnoverCr: Number(f[ci.turnoverCr]) || 0,
+      caUdin: f[ci.caUdin]?.trim() || null,
+      miiPct: Math.round(Number(f[ci.miiPct]) || 0),
+      directorName: f[ci.directorName]?.trim() || null,
+      directorDin: f[ci.directorDin]?.trim() || null,
+      registeredAddress: f[ci.address]?.trim() || null,
+      tampered: (f[ci.tampered] ?? "").trim().toLowerCase() === "true",
+    };
+  });
+
+  await db.registryEntry.createMany({ data: rows, skipDuplicates: true });
+  console.log(`  imported ${rows.length} registry rows`);
 }
 
 type VendorSeed = {
@@ -629,6 +713,9 @@ const DECLARATIONS = [
 async function main() {
   console.log("· wiping");
   await wipe();
+
+  console.log("· national bidder registry");
+  await seedRegistryFromCsv();
 
   console.log("· officers");
   const officer = await db.user.create({
